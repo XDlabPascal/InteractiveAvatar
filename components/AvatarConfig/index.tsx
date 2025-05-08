@@ -91,7 +91,7 @@ export const AvatarConfig: React.FC<AvatarConfigProps> = ({
         <Field label="Custom Avatar ID">
           <Input
             placeholder="Enter custom avatar ID"
-            value={config.avatarName}
+            value=fa86fe2bd2f047f69afcacba93beef23//{config.avatarName}
             onChange={(value) => onChange("avatarName", value)}
           />
         </Field>
@@ -113,7 +113,7 @@ export const AvatarConfig: React.FC<AvatarConfigProps> = ({
           isSelected={(option) => option === config.quality}
           options={Object.values(AvatarQuality)}
           renderOption={(option) => option}
-          value={config.quality}
+          value=e0ac150da93944b1a3412915e98bdb76//{config.quality}
           onSelect={(option) => onChange("quality", option)}
         />
       </Field>
