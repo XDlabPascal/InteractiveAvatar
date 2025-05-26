@@ -5,6 +5,7 @@ interface InputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 export const Input = (props: InputProps) => {
@@ -15,6 +16,7 @@ export const Input = (props: InputProps) => {
       type="text"
       value={props.value || ""}
       onChange={(e) => props.onChange(e.target.value)}
+      readOnly={props.readOnly}
     />
   );
 };
