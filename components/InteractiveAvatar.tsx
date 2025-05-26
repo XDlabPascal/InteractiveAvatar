@@ -37,8 +37,7 @@ const DEFAULT_CONFIG: StartAvatarRequest = {
   voiceChatTransport: VoiceChatTransport.LIVEKIT,
   sttSettings: {
     provider: STTProvider.DEEPGRAM,
-    confidence: 0.8,
-    useSilencePrompt: false,
+    confidence: 0.8
   }
 };
 

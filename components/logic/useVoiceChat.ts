@@ -27,7 +27,6 @@ export const useVoiceChat = () => {
         
         await avatarRef.current?.startVoiceChat({
           isInputAudioMuted,
-          useSilencePrompt: false,
         });
         
         setIsVoiceChatLoading(false);
