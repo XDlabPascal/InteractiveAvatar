@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect } from "react";
 import { ConnectionQuality } from "@heygen/streaming-avatar";
 
 import { useConnectionQuality } from "../logic/useConnectionQuality";
@@ -12,6 +12,46 @@ export const AvatarVideo = forwardRef<HTMLVideoElement>(({}, ref) => {
   const { connectionQuality } = useConnectionQuality();
 
   const isLoaded = sessionState === StreamingAvatarSessionState.CONNECTED;
+
+  // Очистка медиапотока при размонтировании
+  useEffect(() => {
+    return () => {
+      if (ref && 'current' in ref && ref.current) {
+        const videoElement = ref.current as HTMLVideoElement;
+        if (videoElement.srcObject) {
+          const tracks = (videoElement.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
+          videoElement.srcObject = null;
+        }
+      }
+    };
+  }, [ref]);
+
+  // Оптимизация воспроизведения видео
+  useEffect(() => {
+    if (ref && 'current' in ref && ref.current) {
+      const videoElement = ref.current as HTMLVideoElement;
+      
+      // Добавляем обработчики для оптимизации производительности
+      videoElement.addEventListener('loadedmetadata', () => {
+        videoElement.play().catch(console.error);
+      });
+
+      // Обработка ошибок воспроизведения
+      videoElement.addEventListener('error', (e) => {
+        console.error('Video playback error:', e);
+      });
+
+      // Обработка буферизации
+      videoElement.addEventListener('waiting', () => {
+        console.log('Video is buffering...');
+      });
+
+      videoElement.addEventListener('playing', () => {
+        console.log('Video is playing');
+      });
+    }
+  }, [ref]);
 
   return (
     <>
@@ -37,6 +77,7 @@ export const AvatarVideo = forwardRef<HTMLVideoElement>(({}, ref) => {
           height: "100%",
           objectFit: "contain",
         }}
+        preload="auto"
       >
         <track kind="captions" />
       </video>

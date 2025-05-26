@@ -19,23 +19,40 @@ import { useVoiceChat } from "./logic/useVoiceChat";
 import { StreamingAvatarProvider, StreamingAvatarSessionState } from "./logic";
 import { LoadingIcon } from "./Icons";
 import { MessageHistory } from "./AvatarSession/MessageHistory";
+import { AccessCodeModal } from "./AccessCodeModal";
 
 import { AVATARS } from "@/app/lib/constants";
 
 const DEFAULT_CONFIG: StartAvatarRequest = {
-  quality: AvatarQuality.High,
-  avatarName: "June_HR_public",
+  quality: AvatarQuality.Medium,
+  avatarName: "433e2032e1654e07abec5a255d098968",
   knowledgeId: "072e7c65ff9e4762ad63bfe1f34d9440",
   voice: {
-    voiceId: "35c481f56a20457b98409dd72e5bc478"
+    voiceId: "81bb7c1a521442f6b812b2294a29acc1",
+    rate: 1.0,
+    emotion: VoiceEmotion.NEUTRAL,
   },
   language: "ru",
   disableIdleTimeout: true,
   voiceChatTransport: VoiceChatTransport.LIVEKIT,
   sttSettings: {
     provider: STTProvider.DEEPGRAM,
-    confidence: 0.8
+    confidence: 0.8,
+    useSilencePrompt: false,
   }
+};
+
+const performanceMetrics = {
+  startTime: 0,
+  endTime: 0,
+  operations: new Map<string, number>(),
+};
+
+const logPerformance = (operation: string) => {
+  const now = performance.now();
+  const duration = now - performanceMetrics.startTime;
+  performanceMetrics.operations.set(operation, duration);
+  console.log(`Performance [${operation}]: ${duration.toFixed(2)}ms`);
 };
 
 function InteractiveAvatar() {
@@ -51,6 +68,7 @@ function InteractiveAvatar() {
   const MAX_RECONNECT_ATTEMPTS = 3;
   const RECONNECT_DELAY = 3000;
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isCodeVerified, setIsCodeVerified] = useState(false);
 
   const [config, setConfig] = useState<StartAvatarRequest>(DEFAULT_CONFIG);
 
@@ -166,70 +184,93 @@ function InteractiveAvatar() {
 
   const startSessionV2 = useMemoizedFn(async (isVoiceChat: boolean) => {
     try {
+      performanceMetrics.startTime = performance.now();
       resetReconnectState();
       setIsDialogComplete(false);
+      
       console.log("Starting session with config:", JSON.stringify(config, null, 2));
       const newToken = await fetchAccessToken();
-      console.log("Received token:", newToken);
+      logPerformance("Token fetch");
       
       const avatar = initAvatar(newToken);
-      console.log("Avatar initialized");
+      logPerformance("Avatar initialization");
 
-      avatar.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
-        console.log("Avatar started talking", e);
-      });
-      avatar.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
-        console.log("Avatar stopped talking", e);
-      });
-      avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
-        console.log("Stream disconnected");
-        handleConnectionError(new Error("Stream disconnected"));
-      });
-      avatar.on(StreamingEvents.STREAM_READY, (event) => {
-        console.log(">>>>> Stream ready:", event.detail);
-        resetReconnectState();
-      });
-      avatar.on(StreamingEvents.USER_START, (event) => {
-        console.log(">>>>> User started talking:", event);
-      });
-      avatar.on(StreamingEvents.USER_STOP, (event) => {
-        console.log(">>>>> User stopped talking:", event);
-      });
-      avatar.on(StreamingEvents.USER_END_MESSAGE, (event) => {
-        console.log(">>>>> User end message:", event);
-        if (event.detail?.text && checkForEndCommand(event.detail.text)) {
-          handleDialogComplete();
+      const eventHandlers = {
+        [StreamingEvents.AVATAR_START_TALKING]: (e: any) => {
+          console.log("Avatar started talking", e);
+          logPerformance("Avatar start talking");
+        },
+        [StreamingEvents.AVATAR_STOP_TALKING]: (e: any) => {
+          console.log("Avatar stopped talking", e);
+          logPerformance("Avatar stop talking");
+        },
+        [StreamingEvents.STREAM_DISCONNECTED]: () => {
+          console.log("Stream disconnected");
+          handleConnectionError(new Error("Stream disconnected"));
+        },
+        [StreamingEvents.STREAM_READY]: (event: any) => {
+          console.log(">>>>> Stream ready:", event.detail);
+          logPerformance("Stream ready");
+          resetReconnectState();
+        },
+        [StreamingEvents.USER_START]: (event: any) => {
+          console.log(">>>>> User started talking:", event);
+          logPerformance("User start talking");
+        },
+        [StreamingEvents.USER_STOP]: (event: any) => {
+          console.log(">>>>> User stopped talking:", event);
+          logPerformance("User stop talking");
+        },
+        [StreamingEvents.USER_END_MESSAGE]: (event: any) => {
+          console.log(">>>>> User end message:", event);
+          if (event.detail?.text && checkForEndCommand(event.detail.text)) {
+            handleDialogComplete();
+          }
+          logPerformance("User end message");
+        },
+        [StreamingEvents.USER_TALKING_MESSAGE]: (event: any) => {
+          console.log(">>>>> User talking message:", event);
+          if (event.detail?.text && checkForEndCommand(event.detail.text)) {
+            handleDialogComplete();
+          }
+          logPerformance("User talking message");
+        },
+        [StreamingEvents.AVATAR_TALKING_MESSAGE]: (event: any) => {
+          console.log(">>>>> Avatar talking message:", event);
+          logPerformance("Avatar talking message");
+        },
+        [StreamingEvents.AVATAR_END_MESSAGE]: (event: any) => {
+          console.log(">>>>> Avatar end message:", event);
+          logPerformance("Avatar end message");
         }
-      });
-      avatar.on(StreamingEvents.USER_TALKING_MESSAGE, (event) => {
-        console.log(">>>>> User talking message:", event);
-        if (event.detail?.text && checkForEndCommand(event.detail.text)) {
-          handleDialogComplete();
-        }
-      });
-      avatar.on(StreamingEvents.AVATAR_TALKING_MESSAGE, (event) => {
-        console.log(">>>>> Avatar talking message:", event);
-      });
-      avatar.on(StreamingEvents.AVATAR_END_MESSAGE, (event) => {
-        console.log(">>>>> Avatar end message:", event);
+      };
+
+      Object.entries(eventHandlers).forEach(([event, handler]) => {
+        avatar.on(event as StreamingEvents, handler);
       });
 
       console.log("Starting avatar with config:", JSON.stringify(config, null, 2));
       await startAvatar(config);
-      console.log("Avatar started successfully");
+      logPerformance("Avatar start");
 
       if (isVoiceChat) {
         console.log("Starting voice chat...");
         await startVoiceChat();
-        console.log("Voice chat started successfully");
+        logPerformance("Voice chat start");
       }
+
+      performanceMetrics.endTime = performance.now();
+      console.log("Total session initialization time:", 
+        (performanceMetrics.endTime - performanceMetrics.startTime).toFixed(2), "ms");
+      
     } catch (error) {
       console.error("Detailed error starting avatar session:", {
         error,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
         errorStack: error instanceof Error ? error.stack : undefined,
         config: JSON.stringify(config, null, 2),
-        isVoiceChat
+        isVoiceChat,
+        performanceMetrics: Object.fromEntries(performanceMetrics.operations)
       });
       handleConnectionError(error);
     }
@@ -253,6 +294,9 @@ function InteractiveAvatar() {
 
   return (
     <div className="w-full flex flex-col gap-4">
+      {!isCodeVerified && (
+        <AccessCodeModal onCodeVerified={() => setIsCodeVerified(true)} />
+      )}
       <div className="flex flex-col rounded-xl bg-zinc-900 overflow-hidden">
         <div 
           ref={videoContainerRef}
