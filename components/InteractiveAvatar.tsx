@@ -29,8 +29,6 @@ const DEFAULT_CONFIG: StartAvatarRequest = {
   voice: {
     voiceId: "35c481f56a20457b98409dd72e5bc478"
   },
-  version: "v2",
-  video_encoding: "H264",
   language: "ru",
   disableIdleTimeout: true,
   voiceChatTransport: VoiceChatTransport.LIVEKIT,
