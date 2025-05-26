@@ -30,7 +30,7 @@ const DEFAULT_CONFIG: StartAvatarRequest = {
   voice: {
     voiceId: "81bb7c1a521442f6b812b2294a29acc1",
     rate: 1.0,
-    emotion: VoiceEmotion.NEUTRAL,
+    emotion: VoiceEmotion.EXCITED,
   },
   language: "ru",
   disableIdleTimeout: true,
