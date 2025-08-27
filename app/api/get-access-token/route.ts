@@ -10,7 +10,7 @@ export async function POST() {
     const res = await fetch(`${baseApiUrl}/v1/streaming.create_token`, {
       method: "POST",
       headers: {
-        "x-api-key": HEYGEN_API_KEY,
+        "x-api-key": ZGY3YTM5MDNkNjgzNGNjYmJlM2IyM2ZmODRiMTE3MzYtMTcyOTE3MDAwMQ==,
       },
     });
 
